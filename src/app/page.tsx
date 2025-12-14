@@ -92,7 +92,7 @@ export default function Home() {
             <div className="text-center">
               <h3 className="text-sm font-normal text-black tracking-wide uppercase mb-3">Visual Management</h3>
               <p className="text-sm font-light text-gray-500 leading-relaxed">
-                See your work clearly with intuitive Kanban boards. Drag and drop tasks between columns.
+                See your work clearly with intuitive boards. Drag and drop tasks between columns.
               </p>
             </div>
             <div className="text-center">
@@ -114,7 +114,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-100 py-12 relative z-10">
         <div className="max-w-6xl mx-auto px-6 lg:px-8 text-center">
-          <p className="text-xs font-light text-gray-400 tracking-wide">© 2024 Kanba</p>
+          {/* <p className="text-xs font-light text-gray-400 tracking-wide">© 2024 </p> */}
         </div>
       </footer>
     </div>

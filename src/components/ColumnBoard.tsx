@@ -35,18 +35,18 @@ export default function ColumnBoard({
   };
   
   return (
-    <div className="flex-shrink-0 w-64 bg-white border border-gray-100 rounded-lg flex flex-col max-h-full group">
+    <div className="flex-shrink-0 w-64 bg-white border border-black rounded-lg flex flex-col max-h-full group">
       {/* Column Header */}
-      <div className="p-3 border-b border-gray-50">
+      <div className="p-3 border-b border-black">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-normal text-black uppercase tracking-wide">{column.name}</h3>
+          <h3 className="text-xs font-semibold text-black uppercase tracking-wide">{column.name}</h3>
           {!isProtected && (
             <button
               onClick={handleDeleteColumn}
-              className="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-100 rounded transition-all"
+              className="p-1 opacity-0 group-hover:opacity-100 hover:bg-black/10 rounded transition-all"
               title="Delete column"
             >
-              <Trash2 className="w-3 h-3 text-gray-400 hover:text-black" />
+              <Trash2 className="w-3 h-3 text-black" />
             </button>
           )}
         </div>
@@ -59,7 +59,7 @@ export default function ColumnBoard({
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={`flex-1 overflow-y-auto p-2 transition-colors ${
-              snapshot.isDraggingOver ? 'bg-gray-50' : ''
+              snapshot.isDraggingOver ? 'bg-black/5' : ''
             }`}
             style={{ minHeight: '80px' }}
           >
@@ -79,7 +79,7 @@ export default function ColumnBoard({
             {/* Inline Add Task */}
             <button
               onClick={() => onAddTask(column.id)}
-              className="w-full mt-2 p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded transition-colors flex items-center justify-center gap-1 text-xs font-light"
+              className="w-full mt-2 p-2 text-black hover:bg-black/5 rounded transition-colors flex items-center justify-center gap-1 text-xs font-semibold"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add task</span>

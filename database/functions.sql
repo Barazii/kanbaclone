@@ -90,8 +90,7 @@ BEGIN
     -- Create default columns
     INSERT INTO columns (project_id, name, position, color) VALUES
         (v_project_id, 'To Do', 0, '#6366f1'),
-        (v_project_id, 'In Progress', 1, '#f59e0b'),
-        (v_project_id, 'Done', 2, '#22c55e');
+        (v_project_id, 'Done', 1, '#22c55e');
     
     -- Log activity
     INSERT INTO activity_log (project_id, user_id, action, entity_type, entity_id, details)

@@ -6,10 +6,9 @@ import { useAuth } from '@/context/AuthContext';
 import Sidebar from '@/components/Sidebar';
 import ColumnBoard from '@/components/ColumnBoard';
 import TaskModal from '@/components/TaskModal';
-import ProjectModal from '@/components/ProjectModal';
 import { Project, Column, Task, ProjectMember } from '@/types';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { Plus, FolderOpen, ArrowLeft, Users, LayoutGrid, Mail } from 'lucide-react';
+import { Plus, FolderOpen, ArrowLeft, Users, LayoutGrid, Mail, Trash2, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 
 interface ProjectPageProps {
@@ -29,13 +28,13 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   const [activeTab, setActiveTab] = useState<'board' | 'members'>('board');
   
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [showProjectModal, setShowProjectModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedColumnId, setSelectedColumnId] = useState<string>('');
   
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteMessage, setInviteMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showProjectMenu, setShowProjectMenu] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -223,21 +222,25 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     }
   };
 
-  const handleCreateProject = async (data: { name: string; description: string; icon: string }) => {
+  const handleDeleteProject = async () => {
+    if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+      return;
+    }
+    
     try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
       });
 
       if (res.ok) {
-        const result = await res.json();
-        setShowProjectModal(false);
-        router.push(`/projects/${result.id}`);
+        router.push('/dashboard');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete project');
       }
     } catch (error) {
-      console.error('Failed to create project:', error);
+      console.error('Failed to delete project:', error);
+      alert('Failed to delete project');
     }
   };
 
@@ -253,55 +256,87 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   return (
     <div className="flex h-screen bg-white">
-      <Sidebar projects={projects} onNewProject={() => setShowProjectModal(true)} />
+      <Sidebar projects={projects} />
       
       <main className="flex-1 flex flex-col overflow-hidden p-4">
-        <div className="flex-1 flex flex-col bg-gray-50 rounded-xl overflow-hidden">
+        <div className="flex-1 flex flex-col bg-white border border-black rounded-xl overflow-hidden">
           {/* Project Header */}
-          <header className="px-6 py-4 border-b border-gray-100">
+          <header className="px-6 py-4 border-b border-black">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Link 
                   href="/dashboard"
-                  className="p-2 hover:bg-white rounded-lg transition-colors"
+                  className="p-2 hover:bg-black/[0.02] rounded-lg transition-colors"
                 >
-                  <ArrowLeft className="w-4 h-4 text-gray-400" />
+                  <ArrowLeft className="w-4 h-4 text-black" />
                 </Link>
-                <div className="w-9 h-9 bg-white border border-gray-100 rounded-lg flex items-center justify-center">
-                  <FolderOpen className="w-4 h-4 text-gray-500" />
+                <div className="w-9 h-9 bg-white border border-black rounded-lg flex items-center justify-center">
+                  <FolderOpen className="w-4 h-4 text-black" />
                 </div>
                 <div>
                   <h1 className="text-sm font-normal text-black">{project.name}</h1>
                   {project.description && (
-                    <p className="text-xs font-light text-gray-400 mt-0.5">{project.description}</p>
+                    <p className="text-xs font-light text-black/40 mt-0.5">{project.description}</p>
                   )}
                 </div>
               </div>
               
-              {/* Tabs */}
-              <div className="flex items-center gap-1 bg-white border border-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setActiveTab('board')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-light transition-colors ${
-                    activeTab === 'board'
-                      ? 'bg-black text-white'
-                      : 'text-gray-500 hover:text-black'
-                  }`}
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  Board
-                </button>
-                <button
-                  onClick={() => setActiveTab('members')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-light transition-colors ${
-                    activeTab === 'members'
-                      ? 'bg-black text-white'
-                      : 'text-gray-500 hover:text-black'
-                  }`}
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  Members
-                </button>
+              {/* Tabs and Actions */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 bg-white border border-black/10 rounded-lg p-1">
+                  <button
+                    onClick={() => setActiveTab('board')}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-light transition-colors ${
+                      activeTab === 'board'
+                        ? 'bg-black text-white'
+                        : 'text-black/50 hover:text-black'
+                    }`}
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    Board
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('members')}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-light transition-colors ${
+                      activeTab === 'members'
+                        ? 'bg-black text-white'
+                        : 'text-black/50 hover:text-black'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    Members
+                  </button>
+                </div>
+                
+                {/* Project Menu */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowProjectMenu(!showProjectMenu)}
+                    className="p-2 hover:bg-black/[0.02] rounded-lg transition-colors"
+                  >
+                    <MoreVertical className="w-4 h-4 text-black/40" />
+                  </button>
+                  {showProjectMenu && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setShowProjectMenu(false)}
+                      />
+                      <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-black/10 py-1 z-50 min-w-[160px]">
+                        <button
+                          onClick={() => {
+                            setShowProjectMenu(false);
+                            handleDeleteProject();
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete Project
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </header>
@@ -327,10 +362,10 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                   <div className="flex-shrink-0 w-64">
                     <button
                       onClick={handleAddColumn}
-                      className="w-full h-full min-h-[120px] bg-white border border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-gray-300 hover:text-gray-500 transition-all"
+                      className="w-full h-full min-h-[120px] rounded-lg flex flex-col items-center justify-center text-black hover:bg-black/5 transition-all"
                     >
                       <Plus className="w-5 h-5 mb-1" />
-                      <span className="text-xs font-light">Add Column</span>
+                      <span className="text-xs font-semibold">Add Column</span>
                     </button>
                   </div>
                 </div>
@@ -347,26 +382,26 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                   <h2 className="text-sm font-normal text-black mb-4">Invite Member</h2>
                   <form onSubmit={handleInviteMember} className="flex gap-3">
                     <div className="flex-1 relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
                       <input
                         type="email"
                         value={inviteEmail}
                         onChange={(e) => setInviteEmail(e.target.value)}
                         placeholder="Enter email address"
-                        className="w-full pl-10 pr-4 py-2.5 text-sm font-light bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-black transition-colors"
+                        className="w-full pl-10 pr-4 py-2.5 text-sm font-light bg-white border border-black/10 rounded-lg focus:outline-none focus:border-black transition-colors"
                         required
                       />
                     </div>
                     <button
                       type="submit"
                       disabled={inviteLoading}
-                      className="px-5 py-2.5 bg-black text-white text-sm font-light hover:bg-gray-900 transition-colors disabled:opacity-50"
+                      className="px-5 py-2.5 bg-black text-white text-sm font-light hover:bg-black/90 transition-colors disabled:opacity-50"
                     >
                       {inviteLoading ? 'Inviting...' : 'Invite'}
                     </button>
                   </form>
                   {inviteMessage && (
-                    <p className={`mt-2 text-xs font-light ${inviteMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className={`mt-2 text-xs font-light ${inviteMessage.type === 'success' ? 'text-black' : 'text-red-600'}`}>
                       {inviteMessage.text}
                     </p>
                   )}
@@ -376,18 +411,18 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                 <h2 className="text-sm font-normal text-black mb-4">Team Members</h2>
                 <div className="space-y-2">
                   {members.map((member) => (
-                    <div key={member.id} className="bg-white border border-gray-100 rounded-lg p-4 flex items-center justify-between">
+                    <div key={member.id} className="bg-white border border-black/10 rounded-lg p-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-xs font-light text-gray-600">
+                        <div className="w-8 h-8 bg-black/5 rounded-full flex items-center justify-center text-xs font-light text-black/60">
                           {member.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="text-sm font-normal text-black">{member.name}</p>
-                          <p className="text-xs font-light text-gray-400">{member.email}</p>
+                          <p className="text-xs font-light text-black/40">{member.email}</p>
                         </div>
                       </div>
                       <span className={`text-xs font-light px-2 py-1 rounded ${
-                        member.role === 'owner' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
+                        member.role === 'owner' ? 'bg-black text-white' : 'bg-black/5 text-black/60'
                       }`}>
                         {member.role}
                       </span>
@@ -408,13 +443,6 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           onClose={() => setShowTaskModal(false)}
           onSave={handleSaveTask}
           onDelete={selectedTask ? handleDeleteTask : undefined}
-        />
-      )}
-
-      {showProjectModal && (
-        <ProjectModal
-          onClose={() => setShowProjectModal(false)}
-          onSave={handleCreateProject}
         />
       )}
     </div>

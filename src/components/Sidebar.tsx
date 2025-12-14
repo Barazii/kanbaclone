@@ -5,31 +5,27 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { 
+  Folder,
   FolderOpen, 
   Settings, 
-  Plus,
-  ChevronDown,
   LogOut,
   PanelLeftClose,
-  PanelLeft,
-  FileText
+  PanelLeft
 } from 'lucide-react';
 import { useState } from 'react';
 import { Project } from '@/types';
 
 interface SidebarProps {
   projects: Project[];
-  onNewProject: () => void;
 }
 
-export default function Sidebar({ projects, onNewProject }: SidebarProps) {
+export default function Sidebar({ projects }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   const navItems = [
-    { href: '/dashboard', icon: FolderOpen, label: 'Projects', expandable: true },
+    { href: '/dashboard', icon: Folder, label: 'Projects', expandable: true },
     { href: '/settings', icon: Settings, label: 'Settings' },
   ];
 
@@ -56,21 +52,6 @@ export default function Sidebar({ projects, onNewProject }: SidebarProps) {
             <PanelLeftClose className="w-4 h-4 text-gray-500" />
           </button>
         )}
-      </div>
-
-      {/* New Project Button */}
-      <div className={`pb-4 ${collapsed ? 'flex justify-center' : 'px-3'}`}>
-        <button
-          onClick={onNewProject}
-          className={`flex items-center justify-center bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all duration-300 ${collapsed ? 'w-9 h-9' : 'w-full px-4 py-2.5 gap-2'}`}
-        >
-          <Plus className={`flex-shrink-0 ${collapsed ? 'w-5 h-5' : 'w-4 h-4'}`} />
-          {!collapsed && (
-            <span className="whitespace-nowrap">
-              New Project
-            </span>
-          )}
-        </button>
       </div>
 
       {/* Navigation */}
@@ -112,7 +93,7 @@ export default function Sidebar({ projects, onNewProject }: SidebarProps) {
                           : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      <FileText className="w-4 h-4 flex-shrink-0" />
+                      <FolderOpen className="w-4 h-4 flex-shrink-0" />
                       <span className="truncate">{project.name}</span>
                     </Link>
                   ))}
@@ -125,35 +106,24 @@ export default function Sidebar({ projects, onNewProject }: SidebarProps) {
 
       {/* User Profile */}
       <div className={`${collapsed ? 'py-3 flex justify-center' : 'p-3'}`}>
-        <div className="relative">
-          <button 
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            className={`flex items-center rounded-lg hover:bg-gray-50 transition-all duration-300 ${collapsed ? 'w-9 h-9 justify-center' : 'w-full p-2 gap-3'}`}
-          >
-            <div className={`bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 ${collapsed ? 'w-7 h-7' : 'w-8 h-8'}`}>
-              {user?.name?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            {!collapsed && (
-              <>
-                <div className="text-left flex-1">
-                  <p className="text-sm font-medium text-gray-900 whitespace-nowrap">{user?.name || 'User'}</p>
-                  <p className="text-xs text-gray-500 truncate">{user?.email || 'user@email.com'}</p>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              </>
-            )}
-          </button>
-          
-          {showUserMenu && (
-            <div className={`absolute bottom-full mb-2 bg-white rounded-lg shadow-lg py-1 z-50 ${collapsed ? 'left-0 w-40' : 'left-0 w-full'}`}>
+        <div className={`flex items-center ${collapsed ? '' : 'gap-2'}`}>
+          <div className={`bg-black/10 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 ${collapsed ? 'w-7 h-7' : 'w-8 h-8'}`}>
+            {user?.name?.charAt(0).toUpperCase() || 'U'}
+          </div>
+          {!collapsed && (
+            <>
+              <div className="text-left flex-1 min-w-0">
+                <p className="text-sm font-medium text-black whitespace-nowrap">{user?.name || 'User'}</p>
+                <p className="text-xs text-black/50 truncate">{user?.email || 'user@email.com'}</p>
+              </div>
               <button
                 onClick={logout}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                className="p-1.5 hover:bg-black/5 rounded-lg transition-colors flex-shrink-0"
+                title="Sign out"
               >
-                <LogOut className="w-4 h-4" />
-                <span>Sign out</span>
+                <LogOut className="w-4 h-4 text-black/40 hover:text-black" />
               </button>
-            </div>
+            </>
           )}
         </div>
       </div>
