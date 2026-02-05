@@ -1,0 +1,24 @@
+{
+  "name": "kanba",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "build:backend": "npm run build -w backend",
+    "build:frontend": "npm run build -w frontend",
+    "start": "npm run start -w backend",
+    "db:up": "docker rm -f kanba-postgres 2>/dev/null; docker run -d --name kanba-postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=kanba -p 5432:5432 -v kanba-data:/var/lib/postgresql/data -v ./database:/docker-entrypoint-initdb.d kanba-postgres",
+    "db:down": "docker stop kanba-postgres && docker rm kanba-postgres",
+    "db:logs": "docker logs -f kanba-postgres",
+    "db:build": "docker build -t kanba-postgres ."
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
