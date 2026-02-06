@@ -11,11 +11,18 @@ import aiChatRoutes from '../src/routes/ai-chat.js';
 const app = express();
 
 const allowedOrigins = [
-  'https://frontend-seven-smoky-dzcjimc6xj.vercel.app',
   process.env.FRONTEND_URL,
   'http://localhost:5173',
   'http://localhost:3000',
 ].filter(Boolean) as string[];
+
+// Handle OPTIONS preflight for all routes
+app.options('*', cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+}));
 
 // Middleware
 app.use(
