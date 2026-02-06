@@ -58,50 +58,50 @@ export default function Sidebar({ projects }: SidebarProps) {
       </div>
 
       <nav
-        className={`flex-1 py-2 overflow-y-auto overflow-x-hidden ${collapsed ? 'flex flex-col items-center' : 'px-2'}`}
+        className={`flex-1 py-2 overflow-y-auto overflow-x-hidden ${collapsed ? 'px-0' : 'px-2'}`}
       >
-        {navItems.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            pathname.startsWith(item.href + '/') ||
-            (item.label === 'Projects' && pathname === '/dashboard');
-          const Icon = item.icon;
+        <div className={`flex flex-col gap-1 ${collapsed ? 'items-center' : ''}`}>
+          {navItems.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              pathname.startsWith(item.href + '/') ||
+              (item.label === 'Projects' && pathname === '/dashboard');
+            const Icon = item.icon;
 
-          return (
-            <div key={item.label} className={collapsed ? 'flex justify-center w-full' : 'w-full'}>
-              <Link
-                to={item.href}
-                className={`flex items-center rounded-lg mb-1 transition-all duration-300 ${
-                  collapsed ? 'justify-center w-9 h-9' : 'gap-3 px-3 py-2'
-                } ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'}`}
-              >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && <span className="text-sm font-light whitespace-nowrap flex-1">{item.label}</span>}
-              </Link>
-
-              {item.label === 'Projects' && !collapsed && (
-                <div
-                  className={`ml-4 pl-3 py-1 overflow-hidden transition-all duration-300 ${collapsed ? 'h-0 opacity-0' : 'h-auto opacity-100'}`}
+            return (
+              <div key={item.label} className={collapsed ? 'flex justify-center' : ''}>
+                <Link
+                  to={item.href}
+                  className={`flex items-center rounded-lg transition-all duration-300 ${
+                    collapsed ? 'justify-center w-9 h-9' : 'gap-3 px-3 py-2 w-full'
+                  } ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'}`}
                 >
-                  {projects.map((project) => (
-                    <Link
-                      key={project.id}
-                      to={`/projects/${project.id}`}
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors ${
-                        pathname === `/projects/${project.id}`
-                          ? 'bg-gray-100 text-gray-900'
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <FolderOpen className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{project.name}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  {!collapsed && <span className="text-sm font-light whitespace-nowrap flex-1">{item.label}</span>}
+                </Link>
+
+                {item.label === 'Projects' && !collapsed && projects.length > 0 && (
+                  <div className="ml-4 pl-3 py-1">
+                    {projects.map((project) => (
+                      <Link
+                        key={project.id}
+                        to={`/projects/${project.id}`}
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors ${
+                          pathname === `/projects/${project.id}`
+                            ? 'bg-gray-100 text-gray-900'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <FolderOpen className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{project.name}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </nav>
 
       <div className={`${collapsed ? 'py-3 flex justify-center' : 'p-3'}`}>

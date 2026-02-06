@@ -12,9 +12,6 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-console.log('FRONTEND_URL:', FRONTEND_URL);
-console.log('NODE_ENV:', process.env.NODE_ENV);
-
 // Middleware
 app.use(
   cors({
