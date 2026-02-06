@@ -46,3 +46,9 @@ postgres_data/
 
 # Vercel
 .vercel/
+
+# Claude
+.claude/
+
+# Todo
+todo and questions

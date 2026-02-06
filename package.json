@@ -2,17 +2,13 @@
   "name": "kanba",
   "private": true,
   "workspaces": [
-    "backend",
     "frontend"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "npm run dev -w backend",
+    "dev": "npm run dev -w frontend",
     "dev:frontend": "npm run dev -w frontend",
-    "build": "npm run build -w backend && npm run build -w frontend",
-    "build:backend": "npm run build -w backend",
+    "build": "npm run build -w frontend",
     "build:frontend": "npm run build -w frontend",
-    "start": "npm run start -w backend",
     "docker:dev": "docker compose up",
     "docker:dev:build": "docker compose up --build",
     "docker:down": "docker compose down",

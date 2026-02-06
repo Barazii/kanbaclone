@@ -21,18 +21,17 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    volumes:
-      - ./backend/src:/app/src
     ports:
       - "3001:3001"
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_NAME=kanba
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=kanba
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
       - FRONTEND_URL=http://localhost:5173
       - NODE_ENV=development
+      - PORT=3001
     depends_on:
       db:
         condition: service_healthy

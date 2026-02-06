@@ -1,0 +1,13 @@
+{
+  "name": "kanba-backend",
+  "version": "1.0.0",
+  "description": "Kanba Clone C++ Backend with Drogon",
+  "dependencies": [
+    {
+      "name": "drogon",
+      "features": ["postgres", "orm"]
+    },
+    "libsodium",
+    "libuuid"
+  ]
+}
