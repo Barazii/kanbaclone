@@ -34,7 +34,9 @@ void ProjectController::getProjects(
                 projects.append(project);
             }
 
-            auto resp = drogon::HttpResponse::newHttpJsonResponse(projects);
+            Json::Value response;
+            response["projects"] = projects;
+            auto resp = drogon::HttpResponse::newHttpJsonResponse(response);
             callback(resp);
         },
         [callback](const drogon::orm::DrogonDbException& e) {
@@ -69,7 +71,7 @@ void ProjectController::createProject(
 
     auto db = utils::Database::getClient();
     db->execSqlAsync(
-        "SELECT * FROM create_project($1, $2, $3, $4)",
+        "SELECT create_project($1, $2, $3, $4) AS id",
         [callback](const drogon::orm::Result& result) {
             if (result.empty()) {
                 Json::Value error;
@@ -200,6 +202,7 @@ void ProjectController::getProject(
                                     for (const auto& row : membersResult) {
                                         Json::Value member;
                                         member["id"] = row["id"].as<std::string>();
+                                        member["user_id"] = row["user_id"].as<std::string>();
                                         member["name"] = row["name"].as<std::string>();
                                         member["email"] = row["email"].as<std::string>();
                                         member["role"] = row["role"].as<std::string>();
@@ -208,9 +211,34 @@ void ProjectController::getProject(
                                         }
                                         members.append(member);
                                     }
-                                    project["members"] = members;
+                                    // Nest tasks inside their columns (frontend reads column.tasks)
+                                    Json::Value columns = project["columns"];
+                                    Json::Value tasks = project["tasks"];
+                                    for (Json::ArrayIndex i = 0; i < columns.size(); i++) {
+                                        columns[i]["tasks"] = Json::Value(Json::arrayValue);
+                                    }
+                                    for (Json::ArrayIndex t = 0; t < tasks.size(); t++) {
+                                        std::string taskColId = tasks[t]["column_id"].asString();
+                                        for (Json::ArrayIndex i = 0; i < columns.size(); i++) {
+                                            if (columns[i]["id"].asString() == taskColId) {
+                                                columns[i]["tasks"].append(tasks[t]);
+                                                break;
+                                            }
+                                        }
+                                    }
 
-                                    auto resp = drogon::HttpResponse::newHttpJsonResponse(project);
+                                    Json::Value response;
+                                    response["project"] = Json::Value();
+                                    response["project"]["id"] = project["id"];
+                                    response["project"]["name"] = project["name"];
+                                    response["project"]["description"] = project["description"];
+                                    response["project"]["icon"] = project["icon"];
+                                    response["project"]["owner_id"] = project["owner_id"];
+                                    response["project"]["created_at"] = project["created_at"];
+                                    response["columns"] = columns;
+                                    response["members"] = members;
+
+                                    auto resp = drogon::HttpResponse::newHttpJsonResponse(response);
                                     callback(resp);
                                 },
                                 [callback](const drogon::orm::DrogonDbException& e) {

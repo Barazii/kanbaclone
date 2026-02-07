@@ -65,7 +65,7 @@ CREATE TABLE tasks (
     position INTEGER NOT NULL DEFAULT 0,
     assignee_id UUID REFERENCES users(id) ON DELETE SET NULL,
     due_date TIMESTAMP WITH TIME ZONE,
-    tags TEXT[], -- Array of tags
+    tags JSONB DEFAULT '[]'::jsonb, -- JSON array of tags
     created_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

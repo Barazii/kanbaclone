@@ -1,0 +1,30 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "kanba"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "production"
+  },
+  {
+    "ParameterKey": "DatabaseUsername",
+    "ParameterValue": "kanba_admin"
+  },
+  {
+    "ParameterKey": "DatabaseName",
+    "ParameterValue": "kanba"
+  },
+  {
+    "ParameterKey": "EC2InstanceType",
+    "ParameterValue": "t3.micro"
+  },
+  {
+    "ParameterKey": "DatabasePassword",
+    "ParameterValue": "REPLACE_ME_OR_USE_DB_PASSWORD_ENV_VAR"
+  },
+  {
+    "ParameterKey": "KeyPairName",
+    "ParameterValue": "kanba-key"
+  }
+]

@@ -61,8 +61,8 @@ TEST_CASE("should return empty array when user has no projects") {
 
     auto json = resp->getJsonObject();
     REQUIRE(json != nullptr);
-    CHECK(json->isArray());
-    CHECK(json->size() == 0);
+    CHECK((*json)["projects"].isArray());
+    CHECK((*json)["projects"].size() == 0);
 }
 
 TEST_CASE("should return array of projects") {
@@ -98,13 +98,14 @@ TEST_CASE("should return array of projects") {
     ctrl.getProjects(req, [&](const HttpResponsePtr& r) { resp = r; });
 
     auto json = resp->getJsonObject();
-    REQUIRE(json->isArray());
-    CHECK(json->size() == 2);
-    CHECK((*json)[0]["id"].asString() == "p1");
-    CHECK((*json)[0]["name"].asString() == "Project 1");
-    CHECK((*json)[1]["id"].asString() == "p2");
-    CHECK((*json)[1]["description"].asString() == "A description");
-    CHECK((*json)[1]["icon"].asString() == "rocket");
+    auto projects = (*json)["projects"];
+    REQUIRE(projects.isArray());
+    CHECK(projects.size() == 2);
+    CHECK(projects[0]["id"].asString() == "p1");
+    CHECK(projects[0]["name"].asString() == "Project 1");
+    CHECK(projects[1]["id"].asString() == "p2");
+    CHECK(projects[1]["description"].asString() == "A description");
+    CHECK(projects[1]["icon"].asString() == "rocket");
 }
 
 TEST_CASE("should return 500 on database error") {

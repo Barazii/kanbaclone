@@ -44,9 +44,6 @@ yarn-error.log*
 # Docker
 postgres_data/
 
-# Vercel
-.vercel/
-
 # Claude
 .claude/
 

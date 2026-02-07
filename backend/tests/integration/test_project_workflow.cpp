@@ -99,9 +99,10 @@ TEST_CASE("should list user projects after creation") {
     projCtrl.getProjects(req, [&](const HttpResponsePtr& r) { resp = r; });
 
     auto json = resp->getJsonObject();
-    REQUIRE(json->isArray());
-    CHECK(json->size() == 1);
-    CHECK((*json)[0]["name"].asString() == "Kanban Board");
+    auto projects = (*json)["projects"];
+    REQUIRE(projects.isArray());
+    CHECK(projects.size() == 1);
+    CHECK(projects[0]["name"].asString() == "Kanban Board");
 }
 
 // ---------------------------------------------------------------------------

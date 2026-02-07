@@ -1,0 +1,40 @@
+services:
+  testdb:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: kanba_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: testpassword
+    volumes:
+      - ../../../database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ../../../database/functions.sql:/docker-entrypoint-initdb.d/02-functions.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  testrunner:
+    image: ubuntu:22.04
+    depends_on:
+      testdb:
+        condition: service_healthy
+    environment:
+      TEST_DB_CONNINFO: "host=testdb port=5432 dbname=kanba_test user=postgres password=testpassword"
+    volumes:
+      # Mount backend/tests so doctest.h + dbtest/ are accessible
+      - ..:/src/tests:ro
+    working_dir: /build
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -euo pipefail
+        echo "Installing build dependencies..."
+        apt-get update -qq && apt-get install -y -qq cmake g++ pkg-config libpq-dev >/dev/null 2>&1
+        echo "Building tests..."
+        cmake /src/tests/dbtest -DCMAKE_BUILD_TYPE=Debug 2>&1 | tail -3
+        make -j$$(nproc) 2>&1 | tail -5
+        echo "Running tests..."
+        ctest --output-on-failure

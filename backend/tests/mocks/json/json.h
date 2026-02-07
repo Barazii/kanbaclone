@@ -26,6 +26,9 @@ enum ValueType {
     objectValue
 };
 
+// jsoncpp compatibility typedef
+using ArrayIndex = unsigned int;
+
 // Forward declare
 class Value;
 

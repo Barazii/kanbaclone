@@ -36,16 +36,13 @@ void TaskController::createTask(
 
     auto db = utils::Database::getClient();
 
-    // Build query with optional null values
-    std::string sql = "SELECT * FROM create_task($1, $2, $3, $4, ";
-    sql += assigneeId.empty() ? "NULL, " : "$5, ";
-    sql += dueDate.empty() ? "NULL, " : (assigneeId.empty() ? "$5, " : "$6, ");
-    sql += "$" + std::to_string(assigneeId.empty() ? (dueDate.empty() ? 5 : 6) : (dueDate.empty() ? 6 : 7)) + ", ";
-    sql += "$" + std::to_string(assigneeId.empty() ? (dueDate.empty() ? 6 : 7) : (dueDate.empty() ? 7 : 8)) + ")";
-
-    // For simplicity, use a simpler approach with explicit NULLs
+    // Use NULLIF to convert empty strings to NULL (avoids nullptr crash in Drogon)
     db->execSqlAsync(
-        "SELECT * FROM create_task($1::uuid, $2, $3, $4, $5::uuid, $6::timestamptz, $7::jsonb, $8::uuid)",
+        "SELECT * FROM create_task("
+        "$1::uuid, $2, $3, $4, "
+        "NULLIF($5,'')::uuid, "
+        "NULLIF($6,'')::timestamptz, "
+        "$7::jsonb, $8::uuid)",
         [callback](const drogon::orm::Result& result) {
             if (result.empty()) {
                 Json::Value error;
@@ -97,8 +94,8 @@ void TaskController::createTask(
         title,
         description,
         priority,
-        assigneeId.empty() ? nullptr : assigneeId.c_str(),
-        dueDate.empty() ? nullptr : dueDate.c_str(),
+        assigneeId,
+        dueDate,
         tagsJson,
         userId
     );
@@ -133,8 +130,15 @@ void TaskController::updateTask(
     }
 
     auto db = utils::Database::getClient();
+
+    // Use NULLIF to convert empty strings to NULL (avoids nullptr crash in Drogon)
     db->execSqlAsync(
-        "SELECT * FROM update_task($1::uuid, $2, $3, $4, $5::uuid, $6::timestamptz, $7::jsonb, $8::uuid)",
+        "SELECT * FROM update_task("
+        "$1::uuid, "
+        "NULLIF($2,''), NULLIF($3,''), NULLIF($4,''), "
+        "NULLIF($5,'')::uuid, "
+        "NULLIF($6,'')::timestamptz, "
+        "NULLIF($7,'null')::jsonb, $8::uuid)",
         [callback](const drogon::orm::Result& result) {
             if (result.empty()) {
                 Json::Value error;
@@ -173,12 +177,12 @@ void TaskController::updateTask(
             callback(resp);
         },
         id,
-        title.empty() ? nullptr : title.c_str(),
-        description.empty() ? nullptr : description.c_str(),
-        priority.empty() ? nullptr : priority.c_str(),
-        assigneeId.empty() ? nullptr : assigneeId.c_str(),
-        dueDate.empty() ? nullptr : dueDate.c_str(),
-        tagsJson == "null" ? nullptr : tagsJson.c_str(),
+        title,
+        description,
+        priority,
+        assigneeId,
+        dueDate,
+        tagsJson,
         userId
     );
 }
