@@ -1,0 +1,51 @@
+services:
+  testdb:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: kanba_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: testpassword
+    volumes:
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/functions.sql:/docker-entrypoint-initdb.d/02-functions.sql
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_HOST=testdb
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=kanba_test
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=testpassword
+      - FRONTEND_URL=http://localhost:5173
+      - NODE_ENV=development
+      - PORT=3001
+    depends_on:
+      testdb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3001/api/health || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  testrunner:
+    build:
+      context: .
+      dockerfile: backend/tests/httptest/Dockerfile
+    environment:
+      - API_BASE_URL=http://backend:3001
+      - TEST_DB_CONNINFO=host=testdb port=5432 dbname=kanba_test user=postgres password=testpassword
+    depends_on:
+      backend:
+        condition: service_healthy

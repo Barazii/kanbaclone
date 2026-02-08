@@ -63,6 +63,7 @@ RUN apt-get update && apt-get install -y \
     libsodium23 \
     libc-ares2 \
     libbrotli1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary
