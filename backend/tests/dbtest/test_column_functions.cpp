@@ -13,21 +13,19 @@ TEST_CASE("get_project_columns returns 'position' not 'col_position'") {
     std::string projectId = db.createTestProject(userId);
     // create_project creates 2 default columns
 
-    const char* p[] = { projectId.c_str() };
-    PGResultGuard res(db.execParams(
-        "SELECT * FROM get_project_columns($1)", 1, p));
+    auto res = db.execParams("SELECT * FROM get_project_columns($1)", projectId);
 
-    REQUIRE(res.ntuples() >= 2);
+    REQUIRE(res.size() >= 2);
 
     // ProjectController.cpp:147-153 reads these columns
-    CHECK(res.col("id") >= 0);
-    CHECK(res.col("name") >= 0);
-    CHECK(res.col("color") >= 0);
-    CHECK(res.col("task_count") >= 0);
+    CHECK(hasColumn(res, "id"));
+    CHECK(hasColumn(res, "name"));
+    CHECK(hasColumn(res, "color"));
+    CHECK(hasColumn(res, "task_count"));
 
     // CRITICAL: C++ reads row["position"], NOT row["col_position"]
-    CHECK(res.col("position") >= 0);
-    CHECK(res.col("col_position") < 0);  // must NOT exist
+    CHECK(hasColumn(res, "position"));
+    CHECK_FALSE(hasColumn(res, "col_position"));  // must NOT exist
 }
 
 TEST_CASE("create_column returns full row with expected columns") {
@@ -35,21 +33,20 @@ TEST_CASE("create_column returns full row with expected columns") {
     std::string userId = db.createTestUser();
     std::string projectId = db.createTestProject(userId);
 
-    const char* p[] = { projectId.c_str(), "In Progress", "#f59e0b" };
-    PGResultGuard res(db.execParams(
-        "SELECT * FROM create_column($1, $2, $3)", 3, p));
+    auto res = db.execParams("SELECT * FROM create_column($1, $2, $3)",
+                              projectId, "In Progress", "#f59e0b");
 
-    REQUIRE(res.ntuples() == 1);
+    REQUIRE(res.size() == 1);
 
     // ColumnController.cpp:41-47 reads these columns
-    CHECK(res.col("id") >= 0);
-    CHECK(res.col("project_id") >= 0);
-    CHECK(res.col("name") >= 0);
-    CHECK(res.col("color") >= 0);
-    CHECK(res.col("position") >= 0);
+    CHECK(hasColumn(res, "id"));
+    CHECK(hasColumn(res, "project_id"));
+    CHECK(hasColumn(res, "name"));
+    CHECK(hasColumn(res, "color"));
+    CHECK(hasColumn(res, "position"));
 
-    CHECK(res.val(0, "id").length() == 36);
-    CHECK(res.val(0, "name") == "In Progress");
+    CHECK(res[0]["id"].as<std::string>().length() == 36);
+    CHECK(res[0]["name"].as<std::string>() == "In Progress");
 }
 
 TEST_CASE("update_column returns full row with expected columns") {
@@ -58,19 +55,18 @@ TEST_CASE("update_column returns full row with expected columns") {
     std::string projectId = db.createTestProject(userId);
     std::string columnId = db.getFirstColumnId(projectId);
 
-    const char* p[] = { columnId.c_str(), "Renamed", "#ff0000" };
-    PGResultGuard res(db.execParams(
-        "SELECT * FROM update_column($1, $2, $3)", 3, p));
+    auto res = db.execParams("SELECT * FROM update_column($1, $2, $3)",
+                              columnId, "Renamed", "#ff0000");
 
-    REQUIRE(res.ntuples() == 1);
+    REQUIRE(res.size() == 1);
 
     // ColumnController.cpp:99-104 reads these columns
-    CHECK(res.col("id") >= 0);
-    CHECK(res.col("name") >= 0);
-    CHECK(res.col("color") >= 0);
-    CHECK(res.col("position") >= 0);
+    CHECK(hasColumn(res, "id"));
+    CHECK(hasColumn(res, "name"));
+    CHECK(hasColumn(res, "color"));
+    CHECK(hasColumn(res, "position"));
 
-    CHECK(res.val(0, "name") == "Renamed");
+    CHECK(res[0]["name"].as<std::string>() == "Renamed");
 }
 
 TEST_CASE("delete_column executes without error") {
@@ -79,16 +75,13 @@ TEST_CASE("delete_column executes without error") {
     std::string projectId = db.createTestProject(userId);
 
     // Create a 3rd column to delete (keep the 2 defaults)
-    const char* cp[] = { projectId.c_str(), "Temp", "#000" };
-    PGResultGuard created(db.execParams(
-        "SELECT * FROM create_column($1, $2, $3)", 3, cp));
-    std::string colId = created.val(0, "id");
+    auto created = db.execParams("SELECT * FROM create_column($1, $2, $3)",
+                                  projectId, "Temp", "#000");
+    std::string colId = created[0]["id"].as<std::string>();
 
-    const char* p[] = { colId.c_str() };
-    PGResultGuard res(db.execParams(
-        "SELECT * FROM delete_column($1)", 1, p));
+    auto res = db.execParams("SELECT * FROM delete_column($1)", colId);
 
-    CHECK(res.ntuples() == 1);
+    CHECK(res.size() == 1);
 }
 
 } // TEST_SUITE

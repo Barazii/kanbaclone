@@ -1,36 +1,20 @@
 #pragma once
 
-#include <libpq-fe.h>
+#include <pqxx/pqxx>
 #include <string>
 #include <cstdlib>
 #include <stdexcept>
-#include <set>
+#include <optional>
 
-// RAII wrapper for PGresult
-class PGResultGuard {
-public:
-    explicit PGResultGuard(PGresult* r) : res_(r) {}
-    ~PGResultGuard() { if (res_) PQclear(res_); }
-    PGresult* get() const { return res_; }
-    operator PGresult*() const { return res_; }
-    int ntuples() const { return PQntuples(res_); }
-    int nfields() const { return PQnfields(res_); }
-    int col(const char* name) const { return PQfnumber(res_, name); }
-    std::string val(int row, const char* name) const {
-        int c = PQfnumber(res_, name);
-        if (c < 0) throw std::runtime_error(std::string("No column: ") + name);
-        return PQgetvalue(res_, row, c);
+// Check if a result has a column by name
+inline bool hasColumn(const pqxx::result& res, const char* name) {
+    try {
+        res.column_number(name);
+        return true;
+    } catch (const pqxx::argument_error&) {
+        return false;
     }
-    bool isNull(int row, const char* name) const {
-        int c = PQfnumber(res_, name);
-        if (c < 0) return true;
-        return PQgetisnull(res_, row, c);
-    }
-    PGResultGuard(const PGResultGuard&) = delete;
-    PGResultGuard& operator=(const PGResultGuard&) = delete;
-private:
-    PGresult* res_;
-};
+}
 
 // RAII connection wrapper with helpers
 class TestDb {
@@ -39,73 +23,59 @@ public:
         const char* conninfo = std::getenv("TEST_DB_CONNINFO");
         if (!conninfo)
             conninfo = "host=localhost port=5433 dbname=kanba_test user=postgres password=testpassword";
-        conn_ = PQconnectdb(conninfo);
-        if (PQstatus(conn_) != CONNECTION_OK) {
-            std::string err = PQerrorMessage(conn_);
-            PQfinish(conn_);
-            throw std::runtime_error("DB connection failed: " + err);
-        }
+        conn_ = std::make_unique<pqxx::connection>(conninfo);
     }
 
-    ~TestDb() { if (conn_) PQfinish(conn_); }
+    pqxx::connection& conn() { return *conn_; }
 
-    PGconn* get() const { return conn_; }
-
-    PGresult* exec(const char* sql) {
-        PGresult* res = PQexec(conn_, sql);
-        ExecStatusType st = PQresultStatus(res);
-        if (st != PGRES_TUPLES_OK && st != PGRES_COMMAND_OK) {
-            std::string err = PQresultErrorMessage(res);
-            PQclear(res);
-            throw std::runtime_error(std::string("SQL error: ") + err + " [" + sql + "]");
-        }
-        return res;
+    pqxx::result exec(const std::string& sql) {
+        pqxx::nontransaction txn(*conn_);
+        return txn.exec(sql);
     }
 
-    PGresult* execParams(const char* sql, int n, const char* const* vals) {
-        PGresult* res = PQexecParams(conn_, sql, n, nullptr, vals, nullptr, nullptr, 0);
-        ExecStatusType st = PQresultStatus(res);
-        if (st != PGRES_TUPLES_OK && st != PGRES_COMMAND_OK) {
-            std::string err = PQresultErrorMessage(res);
-            PQclear(res);
-            throw std::runtime_error(std::string("SQL error: ") + err + " [" + sql + "]");
-        }
-        return res;
+    template<typename... Args>
+    pqxx::result execParams(const std::string& sql, Args&&... args) {
+        pqxx::nontransaction txn(*conn_);
+        return txn.exec_params(sql, std::forward<Args>(args)...);
     }
 
     void cleanAll() {
-        PQexec(conn_, "DELETE FROM activity_log");
-        PQexec(conn_, "DELETE FROM task_comments");
-        PQexec(conn_, "DELETE FROM tasks");
-        PQexec(conn_, "DELETE FROM columns");
-        PQexec(conn_, "DELETE FROM project_members");
-        PQexec(conn_, "DELETE FROM sessions");
-        PQexec(conn_, "DELETE FROM projects");
-        PQexec(conn_, "DELETE FROM users");
+        pqxx::nontransaction txn(*conn_);
+        txn.exec("DELETE FROM activity_log");
+        txn.exec("DELETE FROM task_comments");
+        txn.exec("DELETE FROM tasks");
+        txn.exec("DELETE FROM columns");
+        txn.exec("DELETE FROM project_members");
+        txn.exec("DELETE FROM sessions");
+        txn.exec("DELETE FROM projects");
+        txn.exec("DELETE FROM users");
     }
 
-    std::string createTestUser(const char* email = "test@example.com",
-                               const char* name = "Test User") {
-        const char* p[] = { email, "$argon2id$fakehash", name };
-        PGResultGuard res(execParams("SELECT * FROM create_user($1, $2, $3)", 3, p));
-        return res.val(0, "id");
+    std::string createTestUser(const std::string& email = "test@example.com",
+                               const std::string& name = "Test User") {
+        pqxx::nontransaction txn(*conn_);
+        auto res = txn.exec_params("SELECT * FROM create_user($1, $2, $3)",
+                                    email, "$argon2id$fakehash", name);
+        return res[0]["id"].as<std::string>();
     }
 
     std::string createTestProject(const std::string& userId,
-                                  const char* name = "Test Project") {
-        const char* p[] = { name, "description", "", userId.c_str() };
-        PGResultGuard res(execParams("SELECT create_project($1, $2, $3, $4) AS id", 4, p));
-        return res.val(0, "id");
+                                  const std::string& name = "Test Project") {
+        pqxx::nontransaction txn(*conn_);
+        auto res = txn.exec_params("SELECT create_project($1, $2, $3, $4) AS id",
+                                    name, "description", "", userId);
+        return res[0]["id"].as<std::string>();
     }
 
     std::string getFirstColumnId(const std::string& projectId) {
-        const char* p[] = { projectId.c_str() };
-        PGResultGuard res(execParams("SELECT * FROM get_project_columns($1)", 1, p));
-        return res.val(0, "id");
+        pqxx::nontransaction txn(*conn_);
+        auto res = txn.exec_params("SELECT * FROM get_project_columns($1)", projectId);
+        return res[0]["id"].as<std::string>();
     }
 
     TestDb(const TestDb&) = delete;
     TestDb& operator=(const TestDb&) = delete;
+
 private:
-    PGconn* conn_;
+    std::unique_ptr<pqxx::connection> conn_;
 };

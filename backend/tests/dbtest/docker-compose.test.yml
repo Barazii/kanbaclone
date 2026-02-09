@@ -32,7 +32,7 @@ services:
       - |
         set -euo pipefail
         echo "Installing build dependencies..."
-        apt-get update -qq && apt-get install -y -qq cmake g++ pkg-config libpq-dev >/dev/null 2>&1
+        apt-get update -qq && apt-get install -y -qq cmake g++ pkg-config libpqxx-dev >/dev/null 2>&1
         echo "Building tests..."
         cmake /src/tests/dbtest -DCMAKE_BUILD_TYPE=Debug 2>&1 | tail -3
         make -j$$(nproc) 2>&1 | tail -5

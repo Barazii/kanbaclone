@@ -12,19 +12,17 @@ TEST_CASE("get_project_members returns expected columns") {
     std::string userId = db.createTestUser();
     std::string projectId = db.createTestProject(userId);
 
-    const char* p[] = { projectId.c_str() };
-    PGResultGuard res(db.execParams(
-        "SELECT * FROM get_project_members($1)", 1, p));
+    auto res = db.execParams("SELECT * FROM get_project_members($1)", projectId);
 
     // Owner is auto-added as member by create_project
-    REQUIRE(res.ntuples() >= 1);
+    REQUIRE(res.size() >= 1);
 
     // ProjectController.cpp:202-208 reads these columns
-    CHECK(res.col("id") >= 0);
-    CHECK(res.col("name") >= 0);
-    CHECK(res.col("email") >= 0);
-    CHECK(res.col("role") >= 0);
-    CHECK(res.col("avatar_url") >= 0);
+    CHECK(hasColumn(res, "id"));
+    CHECK(hasColumn(res, "name"));
+    CHECK(hasColumn(res, "email"));
+    CHECK(hasColumn(res, "role"));
+    CHECK(hasColumn(res, "avatar_url"));
 }
 
 TEST_CASE("add_project_member executes without error") {
@@ -33,17 +31,14 @@ TEST_CASE("add_project_member executes without error") {
     std::string memberId = db.createTestUser("member@test.com", "Member");
     std::string projectId = db.createTestProject(ownerId);
 
-    const char* p[] = { projectId.c_str(), "member@test.com", "member" };
-    PGResultGuard res(db.execParams(
-        "SELECT * FROM add_project_member($1, $2, $3)", 3, p));
+    auto res = db.execParams("SELECT * FROM add_project_member($1, $2, $3)",
+                              projectId, "member@test.com", "member");
 
-    CHECK(res.ntuples() == 1);
+    CHECK(res.size() == 1);
 
     // Verify member was added
-    const char* mp[] = { projectId.c_str() };
-    PGResultGuard members(db.execParams(
-        "SELECT * FROM get_project_members($1)", 1, mp));
-    CHECK(members.ntuples() == 2);  // owner + new member
+    auto members = db.execParams("SELECT * FROM get_project_members($1)", projectId);
+    CHECK(members.size() == 2);  // owner + new member
 }
 
 TEST_CASE("add_project_member fails for non-existent email") {
@@ -51,10 +46,9 @@ TEST_CASE("add_project_member fails for non-existent email") {
     std::string userId = db.createTestUser();
     std::string projectId = db.createTestProject(userId);
 
-    const char* p[] = { projectId.c_str(), "nobody@test.com", "member" };
     // Should raise an exception
-    CHECK_THROWS(db.execParams(
-        "SELECT * FROM add_project_member($1, $2, $3)", 3, p));
+    CHECK_THROWS(db.execParams("SELECT * FROM add_project_member($1, $2, $3)",
+                                projectId, "nobody@test.com", "member"));
 }
 
 } // TEST_SUITE

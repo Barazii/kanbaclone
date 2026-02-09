@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBPQ REQUIRED libpq)
+pkg_check_modules(LIBPQXX REQUIRED libpqxx)
 
 set(DOCTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
@@ -16,9 +16,9 @@ function(add_db_test TEST_NAME TEST_SRC)
     target_include_directories(${TEST_NAME} PRIVATE
         ${DOCTEST_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${LIBPQ_INCLUDE_DIRS}
+        ${LIBPQXX_INCLUDE_DIRS}
     )
-    target_link_libraries(${TEST_NAME} PRIVATE ${LIBPQ_LIBRARIES})
+    target_link_libraries(${TEST_NAME} PRIVATE ${LIBPQXX_LIBRARIES})
     target_compile_options(${TEST_NAME} PRIVATE -Wall -Wextra -Wno-unused-parameter)
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 endfunction()

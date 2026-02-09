@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     cmake g++ pkg-config \
     libcurl4-openssl-dev \
     libjsoncpp-dev \
-    libpq-dev \
+    libpqxx-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tests

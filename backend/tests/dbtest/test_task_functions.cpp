@@ -5,6 +5,8 @@
 // Contract tests for task SQL functions.
 // References: backend/src/controllers/TaskController.cpp, ProjectController.cpp
 
+using null = std::optional<std::string>;
+
 TEST_SUITE("DB Contract: Task Functions") {
 
 TEST_CASE("create_task returns full row with expected columns") {
@@ -14,33 +16,27 @@ TEST_CASE("create_task returns full row with expected columns") {
     std::string columnId = db.getFirstColumnId(projectId);
 
     // TaskController.cpp:48 uses explicit casts
-    const char* p[] = {
-        columnId.c_str(), "My Task", "Description", "high",
-        nullptr,  // assignee_id (NULL)
-        nullptr,  // due_date (NULL)
-        "[]",     // tags as jsonb
-        userId.c_str()
-    };
-    PGResultGuard res(db.execParams(
+    auto res = db.execParams(
         "SELECT * FROM create_task($1::uuid, $2, $3, $4, $5::uuid, $6::timestamptz, $7::jsonb, $8::uuid)",
-        8, p));
+        columnId, "My Task", "Description", "high",
+        null{}, null{}, "[]", userId);
 
-    REQUIRE(res.ntuples() == 1);
+    REQUIRE(res.size() == 1);
 
     // TaskController.cpp:61-82 reads these columns
-    CHECK(res.col("id") >= 0);
-    CHECK(res.col("column_id") >= 0);
-    CHECK(res.col("title") >= 0);
-    CHECK(res.col("description") >= 0);
-    CHECK(res.col("priority") >= 0);
-    CHECK(res.col("position") >= 0);
-    CHECK(res.col("assignee_id") >= 0);
-    CHECK(res.col("due_date") >= 0);
-    CHECK(res.col("tags") >= 0);
-    CHECK(res.col("created_at") >= 0);
+    CHECK(hasColumn(res, "id"));
+    CHECK(hasColumn(res, "column_id"));
+    CHECK(hasColumn(res, "title"));
+    CHECK(hasColumn(res, "description"));
+    CHECK(hasColumn(res, "priority"));
+    CHECK(hasColumn(res, "position"));
+    CHECK(hasColumn(res, "assignee_id"));
+    CHECK(hasColumn(res, "due_date"));
+    CHECK(hasColumn(res, "tags"));
+    CHECK(hasColumn(res, "created_at"));
 
-    CHECK(res.val(0, "title") == "My Task");
-    CHECK(res.val(0, "priority") == "high");
+    CHECK(res[0]["title"].as<std::string>() == "My Task");
+    CHECK(res[0]["priority"].as<std::string>() == "high");
 }
 
 TEST_CASE("create_task with assignee and due_date") {
@@ -49,20 +45,14 @@ TEST_CASE("create_task with assignee and due_date") {
     std::string projectId = db.createTestProject(userId);
     std::string columnId = db.getFirstColumnId(projectId);
 
-    const char* p[] = {
-        columnId.c_str(), "Assigned Task", "", "medium",
-        userId.c_str(),           // assignee_id
-        "2026-03-01T00:00:00Z",  // due_date
-        "[\"bug\",\"urgent\"]",  // tags
-        userId.c_str()
-    };
-    PGResultGuard res(db.execParams(
+    auto res = db.execParams(
         "SELECT * FROM create_task($1::uuid, $2, $3, $4, $5::uuid, $6::timestamptz, $7::jsonb, $8::uuid)",
-        8, p));
+        columnId, "Assigned Task", "", "medium",
+        userId, "2026-03-01T00:00:00Z", "[\"bug\",\"urgent\"]", userId);
 
-    REQUIRE(res.ntuples() == 1);
-    CHECK_FALSE(res.isNull(0, "assignee_id"));
-    CHECK_FALSE(res.isNull(0, "due_date"));
+    REQUIRE(res.size() == 1);
+    CHECK_FALSE(res[0]["assignee_id"].is_null());
+    CHECK_FALSE(res[0]["due_date"].is_null());
 }
 
 TEST_CASE("get_project_tasks returns 'position' not 'task_position'") {
@@ -72,35 +62,30 @@ TEST_CASE("get_project_tasks returns 'position' not 'task_position'") {
     std::string columnId = db.getFirstColumnId(projectId);
 
     // Create a task first
-    const char* cp[] = {
-        columnId.c_str(), "Task1", "", "medium",
-        nullptr, nullptr, "[]", userId.c_str()
-    };
-    PGResultGuard created(db.execParams(
+    db.execParams(
         "SELECT * FROM create_task($1::uuid, $2, $3, $4, $5::uuid, $6::timestamptz, $7::jsonb, $8::uuid)",
-        8, cp));
+        columnId, "Task1", "", "medium",
+        null{}, null{}, "[]", userId);
 
-    const char* p[] = { projectId.c_str() };
-    PGResultGuard res(db.execParams(
-        "SELECT * FROM get_project_tasks($1)", 1, p));
+    auto res = db.execParams("SELECT * FROM get_project_tasks($1)", projectId);
 
-    REQUIRE(res.ntuples() >= 1);
+    REQUIRE(res.size() >= 1);
 
     // ProjectController.cpp:165-190 reads these columns
-    CHECK(res.col("id") >= 0);
-    CHECK(res.col("column_id") >= 0);
-    CHECK(res.col("title") >= 0);
-    CHECK(res.col("description") >= 0);
-    CHECK(res.col("priority") >= 0);
-    CHECK(res.col("assignee_id") >= 0);
-    CHECK(res.col("assignee_name") >= 0);
-    CHECK(res.col("due_date") >= 0);
-    CHECK(res.col("tags") >= 0);
-    CHECK(res.col("created_at") >= 0);
+    CHECK(hasColumn(res, "id"));
+    CHECK(hasColumn(res, "column_id"));
+    CHECK(hasColumn(res, "title"));
+    CHECK(hasColumn(res, "description"));
+    CHECK(hasColumn(res, "priority"));
+    CHECK(hasColumn(res, "assignee_id"));
+    CHECK(hasColumn(res, "assignee_name"));
+    CHECK(hasColumn(res, "due_date"));
+    CHECK(hasColumn(res, "tags"));
+    CHECK(hasColumn(res, "created_at"));
 
     // CRITICAL: C++ reads row["position"], NOT row["task_position"]
-    CHECK(res.col("position") >= 0);
-    CHECK(res.col("task_position") < 0);
+    CHECK(hasColumn(res, "position"));
+    CHECK_FALSE(hasColumn(res, "task_position"));
 }
 
 TEST_CASE("update_task returns full row with expected columns") {
@@ -110,37 +95,31 @@ TEST_CASE("update_task returns full row with expected columns") {
     std::string columnId = db.getFirstColumnId(projectId);
 
     // Create a task
-    const char* cp[] = {
-        columnId.c_str(), "Original", "", "low",
-        nullptr, nullptr, "[]", userId.c_str()
-    };
-    PGResultGuard created(db.execParams(
+    auto created = db.execParams(
         "SELECT * FROM create_task($1::uuid, $2, $3, $4, $5::uuid, $6::timestamptz, $7::jsonb, $8::uuid)",
-        8, cp));
-    std::string taskId = created.val(0, "id");
+        columnId, "Original", "", "low",
+        null{}, null{}, "[]", userId);
+    std::string taskId = created[0]["id"].as<std::string>();
 
     // TaskController.cpp:137 uses same cast pattern
-    const char* p[] = {
-        taskId.c_str(), "Updated", "new desc", "high",
-        nullptr, nullptr, nullptr, userId.c_str()
-    };
-    PGResultGuard res(db.execParams(
+    auto res = db.execParams(
         "SELECT * FROM update_task($1::uuid, $2, $3, $4, $5::uuid, $6::timestamptz, $7::jsonb, $8::uuid)",
-        8, p));
+        taskId, "Updated", "new desc", "high",
+        null{}, null{}, null{}, userId);
 
-    REQUIRE(res.ntuples() == 1);
+    REQUIRE(res.size() == 1);
 
     // TaskController.cpp:150-162 reads these columns
-    CHECK(res.col("id") >= 0);
-    CHECK(res.col("column_id") >= 0);
-    CHECK(res.col("title") >= 0);
-    CHECK(res.col("description") >= 0);
-    CHECK(res.col("priority") >= 0);
-    CHECK(res.col("position") >= 0);
-    CHECK(res.col("assignee_id") >= 0);
-    CHECK(res.col("due_date") >= 0);
+    CHECK(hasColumn(res, "id"));
+    CHECK(hasColumn(res, "column_id"));
+    CHECK(hasColumn(res, "title"));
+    CHECK(hasColumn(res, "description"));
+    CHECK(hasColumn(res, "priority"));
+    CHECK(hasColumn(res, "position"));
+    CHECK(hasColumn(res, "assignee_id"));
+    CHECK(hasColumn(res, "due_date"));
 
-    CHECK(res.val(0, "title") == "Updated");
+    CHECK(res[0]["title"].as<std::string>() == "Updated");
 }
 
 TEST_CASE("move_task executes without error") {
@@ -149,27 +128,23 @@ TEST_CASE("move_task executes without error") {
     std::string projectId = db.createTestProject(userId);
 
     // Get both default columns
-    const char* gp[] = { projectId.c_str() };
-    PGResultGuard cols(db.execParams("SELECT * FROM get_project_columns($1)", 1, gp));
-    std::string col1 = cols.val(0, "id");
-    std::string col2 = cols.val(1, "id");
+    auto cols = db.execParams("SELECT * FROM get_project_columns($1)", projectId);
+    std::string col1 = cols[0]["id"].as<std::string>();
+    std::string col2 = cols[1]["id"].as<std::string>();
 
     // Create a task in col1
-    const char* cp[] = {
-        col1.c_str(), "Movable", "", "medium",
-        nullptr, nullptr, "[]", userId.c_str()
-    };
-    PGResultGuard created(db.execParams(
+    auto created = db.execParams(
         "SELECT * FROM create_task($1::uuid, $2, $3, $4, $5::uuid, $6::timestamptz, $7::jsonb, $8::uuid)",
-        8, cp));
-    std::string taskId = created.val(0, "id");
+        col1, "Movable", "", "medium",
+        null{}, null{}, "[]", userId);
+    std::string taskId = created[0]["id"].as<std::string>();
 
     // Move to col2
-    const char* p[] = { taskId.c_str(), col2.c_str(), "0", userId.c_str() };
-    PGResultGuard res(db.execParams(
-        "SELECT * FROM move_task($1::uuid, $2::uuid, $3, $4::uuid)", 4, p));
+    auto res = db.execParams(
+        "SELECT * FROM move_task($1::uuid, $2::uuid, $3, $4::uuid)",
+        taskId, col2, "0", userId);
 
-    CHECK(res.ntuples() == 1);
+    CHECK(res.size() == 1);
 }
 
 TEST_CASE("delete_task executes without error") {
@@ -178,20 +153,16 @@ TEST_CASE("delete_task executes without error") {
     std::string projectId = db.createTestProject(userId);
     std::string columnId = db.getFirstColumnId(projectId);
 
-    const char* cp[] = {
-        columnId.c_str(), "Deletable", "", "low",
-        nullptr, nullptr, "[]", userId.c_str()
-    };
-    PGResultGuard created(db.execParams(
+    auto created = db.execParams(
         "SELECT * FROM create_task($1::uuid, $2, $3, $4, $5::uuid, $6::timestamptz, $7::jsonb, $8::uuid)",
-        8, cp));
-    std::string taskId = created.val(0, "id");
+        columnId, "Deletable", "", "low",
+        null{}, null{}, "[]", userId);
+    std::string taskId = created[0]["id"].as<std::string>();
 
-    const char* p[] = { taskId.c_str(), userId.c_str() };
-    PGResultGuard res(db.execParams(
-        "SELECT * FROM delete_task($1::uuid, $2::uuid)", 2, p));
+    auto res = db.execParams("SELECT * FROM delete_task($1::uuid, $2::uuid)",
+                              taskId, userId);
 
-    CHECK(res.ntuples() == 1);
+    CHECK(res.size() == 1);
 }
 
 } // TEST_SUITE

@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBPQ REQUIRED libpq)
+pkg_check_modules(LIBPQXX REQUIRED libpqxx)
 pkg_check_modules(JSONCPP REQUIRED jsoncpp)
 find_package(CURL REQUIRED)
 
@@ -33,13 +33,13 @@ target_include_directories(http_tests PRIVATE
     ${DOCTEST_DIR}
     ${DBTEST_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${LIBPQ_INCLUDE_DIRS}
+    ${LIBPQXX_INCLUDE_DIRS}
     ${JSONCPP_INCLUDE_DIRS}
     ${CURL_INCLUDE_DIRS}
 )
 
 target_link_libraries(http_tests PRIVATE
-    ${LIBPQ_LIBRARIES}
+    ${LIBPQXX_LIBRARIES}
     ${JSONCPP_LIBRARIES}
     ${CURL_LIBRARIES}
 )
