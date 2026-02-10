@@ -364,54 +364,6 @@ Resources:
             VolumeSize: 20
             VolumeType: gp3
             Encrypted: true
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          set -euxo pipefail
-
-          # Log all output
-          exec > >(tee /var/log/user-data.log) 2>&1
-
-          # Update system
-          yum update -y
-
-          # Install Docker
-          yum install -y docker
-          systemctl enable docker
-          systemctl start docker
-          usermod -aG docker ec2-user
-
-          # Create app directory
-          mkdir -p /opt/kanba
-
-          # Write environment file
-          cat > /opt/kanba/.env <<ENVEOF
-          DATABASE_HOST=${Database.Endpoint.Address}
-          DATABASE_PORT=5432
-          DATABASE_NAME=${DatabaseName}
-          DATABASE_USER=${DatabaseUsername}
-          DATABASE_PASSWORD=${DatabasePassword}
-          PORT=3001
-          NODE_ENV=production
-          FRONTEND_URL=
-          ENVEOF
-          # Strip leading whitespace from .env lines
-          sed -i 's/^[[:space:]]*//' /opt/kanba/.env
-
-          # Login to ECR and pull the backend image
-          ECR_URI="${BackendECRRepository.RepositoryUri}:latest"
-          aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
-          docker pull "$ECR_URI"
-
-          # Run the backend container
-          docker run -d \
-            --name kanba-backend \
-            --restart unless-stopped \
-            --env-file /opt/kanba/.env \
-            -p 3001:3001 \
-            "$ECR_URI"
-
-          echo "EC2 UserData complete. Backend container started from ECR."
       Tags:
         - Key: Name
           Value: !Sub '${ProjectName}-${Environment}-backend'
