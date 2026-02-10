@@ -6,8 +6,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: testpassword
     volumes:
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-      - ./database/functions.sql:/docker-entrypoint-initdb.d/02-functions.sql
+      - ../database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ../database/functions.sql:/docker-entrypoint-initdb.d/02-functions.sql
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
@@ -18,7 +18,7 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Dockerfile
     environment:
       - DATABASE_HOST=testdb
@@ -27,7 +27,6 @@ services:
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=testpassword
       - FRONTEND_URL=http://localhost:5173
-      - NODE_ENV=development
       - PORT=3001
     depends_on:
       testdb:
@@ -41,7 +40,7 @@ services:
 
   testrunner:
     build:
-      context: .
+      context: ..
       dockerfile: backend/tests/httptest/Dockerfile
     environment:
       - API_BASE_URL=http://backend:3001

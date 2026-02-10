@@ -30,7 +30,6 @@ services:
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=postgres
       - FRONTEND_URL=http://localhost:5173
-      - NODE_ENV=development
       - PORT=3001
     depends_on:
       db:
